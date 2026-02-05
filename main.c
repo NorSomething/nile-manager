@@ -8,15 +8,15 @@
 
 void get_directories(char *dir_name, char *dir_collection[], int *l) {
 
-    struct dirent *de;
-    DIR *dr = opendir(dir_name);
-
-    if (!dr) return;
-
     if (strlen(dir_name) == 0) {
         strcpy(dir_name, ".");
         
     }
+
+    struct dirent *de;
+    DIR *dr = opendir(dir_name);
+
+    if (!dr) return;
 
     while((de = readdir(dr)) != NULL) {
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
@@ -77,15 +77,51 @@ int main() {
     mvwgetnstr(fields_win, 2, 9, dir_name, 99);
     noecho();
 
+
+    int selected = 0; //current selected dir
+    int offset = 0; // first visible dir
+
+    int wy, wx; //dir window size
+    getmaxyx(show_dir_win, wy, wx);
+
+    int visible = wy - 2;   // minus borders 
+
+
     get_directories(dir_name, dir_collection, &l);
 
+    keypad(stdscr, TRUE); //for arrow keys
+    
+    while(1) {
 
-    for (int i = 0; i < l; i++) {
-        mvwprintw(show_dir_win, i+1, 4, dir_collection[i]);
+        int ch = getch();
+
+        if (ch == KEY_DOWN && selected < l-1) {
+            selected++;
+        }
+        if (ch == KEY_UP && selected > 0) {
+            selected--;
+        }
+
+        //if cursor goes past visible region
+        if (selected >= offset + visible) {
+            offset++;
+        }
+        if (selected < offset) {
+            offset--;
+        }
+
+        werase(show_dir_win); //clearing before drawing
+        box(show_dir_win, 0, 0);
+
+        //drawing
+        for (int i = 0; i < visible && i + offset < l; i++) { // drawing what fits
+            mvwprintw(show_dir_win, i+1, 4, dir_collection[i+offset]);
+        }
+
+        wrefresh(fields_win);
+        wrefresh(show_dir_win);
+
     }
-
-    wrefresh(fields_win);
-    wrefresh(show_dir_win);
     getch();
     endwin();
 
