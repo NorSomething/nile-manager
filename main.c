@@ -2,6 +2,9 @@
 #include <ncurses.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+
 // gcc -Wall -Wextra main.c fs.c ui.c -lncurses -o fm
 
 // each window has relative coords (0,0 is start of THAT window)
@@ -9,7 +12,7 @@
 void get_directories(char *dir_name, char *dir_collection[], int *l) {
 
     if (strlen(dir_name) == 0) {
-        strcpy(dir_name, ".");
+        strcpy(dir_name, "/home/nirmal");
         
     }
 
@@ -33,8 +36,44 @@ void get_directories(char *dir_name, char *dir_collection[], int *l) {
     
 }
 
-int test() {
-   return 67; 
+int cat(char *file_name, char *dir_name, char *contents_buffer) {
+
+    struct stat st;
+
+    char full_path[strlen(file_name)+strlen(dir_name)+2]; // +1 for / and otehr for null terminator
+
+    int i;
+
+    for (i = 0; i < strlen(dir_name); i++) {
+        full_path[i] = dir_name[i];
+    }
+
+    full_path[i++] = '/';
+
+    for (int j = 0; j < strlen(file_name); j++) {
+        full_path[i++] = file_name[j];
+    }
+
+    full_path[i] = '\0';
+
+    FILE *fptr = fopen(full_path, "r");
+
+    if (!fptr) return -1;
+
+    char c;
+    int l = 0;
+
+    while ((c = fgetc(fptr)) != EOF) {
+        contents_buffer[l++] = c;
+    }
+
+    contents_buffer[l] = '\0';
+    fclose(fptr);
+
+    return 0;
+
+
+
 }
 
 int main() {
@@ -54,18 +93,21 @@ int main() {
     WINDOW *main_win = newwin(ymax, xmax, 0, 0);
     WINDOW *heading_win = newwin(5, xmax-4, 2, 2);
     WINDOW *fields_win = newwin(5, xmax-4, 8, 2);
-    WINDOW *show_dir_win = newwin(ymax-15, xmax-4, 14, 2);
+    WINDOW *show_dir_win = newwin(ymax-15, (xmax-4)/2, 14, 2);
+    WINDOW *cat_win = newwin(ymax-15, (xmax-4) - ((xmax-4)/2), 14, 2+(xmax-4)/2);
     refresh();
 
     box(main_win, 0, 0);
     box(heading_win, 0, 0);
     box(fields_win, 0, 0);
     box(show_dir_win, 0, 0);
+    box(cat_win, 0, 0);
 
     wrefresh(main_win);
     wrefresh(heading_win);
     wrefresh(fields_win);
     wrefresh(show_dir_win);
+    wrefresh(cat_win);  
 
     mvwprintw(heading_win, 2, (xmax-22-4)/2, "Nirmal's File Manager.");
    
@@ -86,12 +128,14 @@ int main() {
 
     int visible = wy - 2;   // minus borders 
 
-
     get_directories(dir_name, dir_collection, &l);
 
     keypad(stdscr, TRUE); //for arrow keys
+
+    char contents_buffer[10000];
+
     
-    while(1) {
+    while(1) { // draw loop
 
         int ch = getch();
 
@@ -115,13 +159,34 @@ int main() {
 
         //drawing
         for (int i = 0; i < visible && i + offset < l; i++) { // drawing what fits
+
+            if (i + offset == selected) {
+                wattron(show_dir_win, A_REVERSE); //window attribute on, highlighting
+            }
+
             mvwprintw(show_dir_win, i+1, 4, dir_collection[i+offset]);
+            
+            wattroff(show_dir_win, A_REVERSE);
+
         }
 
+
+        if (ch == KEY_ENTER || ch == '\n') {
+            
+            werase(cat_win);
+            box(cat_win, 0, 0);
+            int temp = cat(dir_collection[selected], dir_name, contents_buffer); // arrays auto decay to pointers to no need to pass as address here?
+            mvwprintw(cat_win, 1, 4, contents_buffer);
+            wrefresh(cat_win);
+
+
+        }
+        
         wrefresh(fields_win);
         wrefresh(show_dir_win);
 
     }
+
     getch();
     endwin();
 
