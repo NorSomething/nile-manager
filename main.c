@@ -12,7 +12,7 @@
 void get_directories(char *dir_name, char *dir_collection[], int *l) {
 
     if (strlen(dir_name) == 0) {
-        strcpy(dir_name, "/home/nirmal");
+        strcpy(dir_name, "/home/");
         
     }
 
@@ -38,11 +38,40 @@ void get_directories(char *dir_name, char *dir_collection[], int *l) {
     
 }
 
+int file_dir_checker(char *path) {
+
+    struct stat s;
+
+    //usign macros to check file type
+
+    if (stat(path, &s) == 0) {
+
+        if (S_ISDIR(s.st_mode)) {
+            //is a directory 
+            return 1;
+        }
+        else if (S_ISREG(s.st_mode)) {
+            //is a file
+            return 2;
+        }
+        else {
+            return -1; //somethign esle?
+        }
+
+    }
+    
+    return 0;
+
+
+}
+
 int cat(char *file_name, char *dir_name, char *contents_buffer) {
 
     struct stat st;
 
-    char full_path[strlen(file_name)+strlen(dir_name)+2]; // +1 for / and otehr for null terminator
+    char full_path[512];
+    // char full_path[strlen(file_name)+strlen(dir_name)+2]; // +1 for / and otehr for null terminator
+    snprintf(full_path, sizeof(full_path), "%s/%s", dir_name, file_name);
 
     int i;
 
@@ -89,6 +118,8 @@ int main() {
     char dir_name[100];
     char *dir_collection[10000];
     int l = 0; //if *l = 0 then null pointer so seg fault
+
+    char full_path[256];
 
     getmaxyx(stdscr, ymax, xmax);
 
@@ -156,8 +187,9 @@ int main() {
             offset--;
         }
 
-        mvwprintw(heading_win, 2, 2, dir_name);
-        wrefresh(heading_win);
+        mvwprintw(fields_win, 2, getmaxx(fields_win) - strlen("Current Path : ") - strlen(full_path) - 2, "Current Path : %s", full_path);
+        wrefresh(fields_win);
+
 
         werase(show_dir_win); //clearing before drawing
         box(show_dir_win, 0, 0);
@@ -170,12 +202,17 @@ int main() {
             }
 
             mvwprintw(show_dir_win, i+1, 4, dir_collection[i+offset]);
+
+            // werase(cat_win); do i even need this? this is clearing cat window when the selected item changes? i think this is bad ux
+            // box(cat_win, 0, 0);
+            // wrefresh(cat_win);
+
             
             wattroff(show_dir_win, A_REVERSE);
 
         }
 
-        if (ch == KEY_SR) {
+        if (ch == 'r') {
 
             werase(fields_win);
             box(fields_win, 0, 0);
@@ -211,11 +248,42 @@ int main() {
 
         if (ch == KEY_ENTER || ch == '\n') {
             
-            werase(cat_win);
-            box(cat_win, 0, 0);
-            int temp = cat(dir_collection[selected], dir_name, contents_buffer); // arrays auto decay to pointers so no need to pass as address here?
-            mvwprintw(cat_win, 1, 4, contents_buffer);
-            wrefresh(cat_win);
+            
+            snprintf(full_path, sizeof(full_path), "%s/%s", dir_name, dir_collection[selected]);
+            int type = file_dir_checker(full_path);
+
+            if (type == 2) {
+         
+                //is a file
+                werase(cat_win);
+                box(cat_win, 0, 0);
+
+                cat(dir_collection[selected], dir_name, contents_buffer);
+                mvwprintw(cat_win, 1, 4, contents_buffer);
+                wrefresh(cat_win);
+
+            }
+
+            else if (type == 1) {
+
+                //is a directory
+                for (int i = 0; i < l; i++) 
+                    free(dir_collection[i]);
+
+                strcpy(dir_name, full_path); //copying full path into dirname
+                l = 0;
+                selected = 0;
+                offset = 0;
+                
+                werase(show_dir_win);
+                box(show_dir_win, 0, 0);
+                get_directories(dir_name, dir_collection, &l);
+                wrefresh(show_dir_win);
+
+            }
+            
+                
+            
 
         }
 
