@@ -29,6 +29,8 @@ void get_directories(char *dir_name, char *dir_collection[], int *l) {
 
         dir_collection[(*l)++] = strdup(de->d_name); // does not work without strdup idk why
             //strdup to stop overwriting of the buffer, readdir gives reused buffer
+            //strup allocates new memory to the heap, copies d_name into that memory, and gives a pointer to it
+            //used here cuz char* stuff can sit in any memory (stack, heap, kernelowned, reused internal buffer) => so here each entry points to a differnet heap  memory
             
     }
 
@@ -154,6 +156,9 @@ int main() {
             offset--;
         }
 
+        mvwprintw(heading_win, 2, 2, dir_name);
+        wrefresh(heading_win);
+
         werase(show_dir_win); //clearing before drawing
         box(show_dir_win, 0, 0);
 
@@ -170,18 +175,51 @@ int main() {
 
         }
 
+        if (ch == KEY_SR) {
+
+            werase(fields_win);
+            box(fields_win, 0, 0);
+            wrefresh(fields_win);
+            mvwprintw(fields_win, 2, 2, "Path:");
+            echo();
+            mvwgetnstr(fields_win, 2, 9, dir_name, 99);
+            noecho();
+            refresh();
+            wrefresh(fields_win);
+        
+            //resettings
+            for (int i = 0; i < l; i++) {
+                free(dir_collection[i]);
+            }
+
+            // need to free whenver we do strdup, malloc, calloc, realloc
+
+            l = 0;
+            selected = 0;
+            offset = 0;
+
+            werase(show_dir_win);
+            box(show_dir_win, 0, 0);
+            get_directories(dir_name, dir_collection, &l);
+            wrefresh(show_dir_win);
+            
+            
+
+        }
+        
+
 
         if (ch == KEY_ENTER || ch == '\n') {
             
             werase(cat_win);
             box(cat_win, 0, 0);
-            int temp = cat(dir_collection[selected], dir_name, contents_buffer); // arrays auto decay to pointers to no need to pass as address here?
+            int temp = cat(dir_collection[selected], dir_name, contents_buffer); // arrays auto decay to pointers so no need to pass as address here?
             mvwprintw(cat_win, 1, 4, contents_buffer);
             wrefresh(cat_win);
 
-
         }
-        
+
+
         wrefresh(fields_win);
         wrefresh(show_dir_win);
 
