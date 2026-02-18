@@ -22,8 +22,8 @@ void get_directories(char *dir_name, char *dir_collection[], int *l) {
     if (!dr) return;
 
     while((de = readdir(dr)) != NULL) {
-        if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
-            continue;
+        // if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+        //     continue;
         if (*l >= 10000) 
             break;
 
@@ -243,7 +243,52 @@ int main() {
             
 
         }
-        
+
+        if (ch == 'k') {
+            //get selected, get full path, open kate thru system()
+            char full_path_for_kate[256];
+            char command[256];
+
+            snprintf(full_path_for_kate, sizeof(full_path_for_kate), "%s/%s", dir_name, dir_collection[selected]);
+            snprintf(command, sizeof(command), "kate %s", full_path_for_kate);
+
+            system(command); //this is super super unsafe tho someoen can jsut edit this to rm -rf
+
+
+        }
+
+        if (ch == 'n') {
+
+            char new_file[100];
+
+            werase(fields_win);
+            box(fields_win, 0, 0);
+            mvwprintw(fields_win, 2, 2, "New file name:");
+            echo();
+            mvwgetnstr(fields_win, 2, 18, new_file, 99);
+            noecho();
+            wrefresh(fields_win);
+
+            char full_new_path[256];
+            snprintf(full_new_path, sizeof(full_new_path), "%s/%s", dir_name, new_file);
+
+            FILE *f = fopen(full_new_path, "w"); //opening that new file in read mode
+            if (f) fclose(f);
+
+            //resettings
+            for (int i = 0; i < l; i++)
+                free(dir_collection[i]);
+
+            l = 0;
+            selected = 0;
+            offset = 0;
+
+            werase(show_dir_win);
+            box(show_dir_win, 0, 0);
+            get_directories(dir_name, dir_collection, &l);
+            wrefresh(show_dir_win);
+
+        }
 
 
         if (ch == KEY_ENTER || ch == '\n') {
