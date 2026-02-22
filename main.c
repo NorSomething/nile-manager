@@ -257,7 +257,7 @@ int main() {
 
         }
 
-        if (ch == 'd') {
+        if (ch == 'd') { //this doesnt work btw idk why pls help
 
             char full_path_for_delete[256];
             char command[256];
