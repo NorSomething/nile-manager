@@ -257,6 +257,44 @@ int main() {
 
         }
 
+        if (ch == 'd') {
+
+            char full_path_for_delete[256];
+            char command[256];
+            char confirm[256];
+
+            werase(fields_win);
+            box(fields_win, 0, 0);
+            wrefresh(fields_win);
+            mvwprintw(fields_win, 2, 2, "Are you sure? (y/n) :");
+            echo();
+            mvwgetnstr(fields_win, 2, 9, confirm, 99);
+            noecho();
+            refresh();
+            wrefresh(fields_win);
+
+            if (strcmp(confirm, "y") == 0) {
+                snprintf(full_path_for_delete, sizeof(full_path_for_delete),"%s/%s", dir_name, dir_collection[selected]);
+                snprintf(command, sizeof(command), "rm -rf %s", full_path_for_delete);
+            }
+
+            system(command);
+
+            //resettings
+            for (int i = 0; i < l; i++)
+                free(dir_collection[i]);
+
+            l = 0;
+            selected = 0;
+            offset = 0;
+
+            werase(show_dir_win);
+            box(show_dir_win, 0, 0);
+            get_directories(dir_name, dir_collection, &l);
+            wrefresh(show_dir_win);
+            
+        }
+
         if (ch == 'n') {
 
             char new_file[100];
